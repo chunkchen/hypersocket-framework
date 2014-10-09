@@ -16,4 +16,9 @@ public class ServiceManagementServiceImpl extends AuthenticatedServiceImpl imple
 	public void registerService(ManageableService service) {
 		services.put(service.getResourceKey(), service);
 	}
+
+	@Override
+	public Map<String, ManageableService> getRegisteredServices() {
+		return services;
+	}
 }
