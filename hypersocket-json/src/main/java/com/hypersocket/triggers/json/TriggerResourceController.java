@@ -57,8 +57,8 @@ public class TriggerResourceController extends ResourceController {
 	EventService eventService;
 
 	@Autowired
-	TaskProviderService taskService; 
-	
+	TaskProviderService taskService;
+
 	@AuthenticationRequired
 	@RequestMapping(value = "triggers/table", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
@@ -163,7 +163,8 @@ public class TriggerResourceController extends ResourceController {
 	@RequestMapping(value = "triggers/event/{resourceKey}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	@ResponseStatus(value = HttpStatus.OK)
-	public ResourceStatus<EventDefinition> getEventDefinition(HttpServletRequest request, @PathVariable String resourceKey)
+	public ResourceStatus<EventDefinition> getEventDefinition(
+			HttpServletRequest request, @PathVariable String resourceKey)
 			throws AccessDeniedException, UnauthorizedException,
 			SessionTimeoutException {
 		setupAuthenticatedContext(sessionUtils.getSession(request),
@@ -175,57 +176,60 @@ public class TriggerResourceController extends ResourceController {
 			clearAuthenticatedContext();
 		}
 	}
-	
+
 	@AuthenticationRequired
 	@RequestMapping(value = "triggers/parentEvents/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	@ResponseStatus(value = HttpStatus.OK)
-	public ResourceList<EventDefinition> getParentEventDefinitions(HttpServletRequest request, @PathVariable Long id)
+	public ResourceList<EventDefinition> getParentEventDefinitions(
+			HttpServletRequest request, @PathVariable Long id)
 			throws AccessDeniedException, UnauthorizedException,
 			SessionTimeoutException {
 		setupAuthenticatedContext(sessionUtils.getSession(request),
 				sessionUtils.getLocale(request));
 		try {
-			
-			List<TriggerResource> triggers = resourceService.getParentTriggers(id);
+
+			List<TriggerResource> triggers = resourceService
+					.getParentTriggers(id);
 			List<EventDefinition> events = new ArrayList<EventDefinition>();
-			for(TriggerResource trigger : triggers) {
+			for (TriggerResource trigger : triggers) {
 				events.add(eventService.getEventDefinition(trigger.getEvent()));
 			}
 			return new ResourceList<EventDefinition>(events);
-			
+
 		} finally {
 			clearAuthenticatedContext();
 		}
 	}
-	
+
 	@AuthenticationRequired
 	@RequestMapping(value = "triggers/actionResults/{id}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
 	@ResponseStatus(value = HttpStatus.OK)
-	public ResourceList<EventDefinition> getPostTriggerEvents(HttpServletRequest request, @PathVariable Long id)
+	public ResourceList<EventDefinition> getPostTriggerEvents(
+			HttpServletRequest request, @PathVariable Long id)
 			throws AccessDeniedException, UnauthorizedException,
 			SessionTimeoutException, ResourceNotFoundException {
 		setupAuthenticatedContext(sessionUtils.getSession(request),
 				sessionUtils.getLocale(request));
 		try {
-		
+
 			List<EventDefinition> events = new ArrayList<EventDefinition>();
 
 			TriggerAction action = resourceService.getActionById(id);
-			
-			for(String resourceKey : taskService.getTaskProvider(action.getResourceKey()).getResultResourceKeys()) {
+
+			for (String resourceKey : taskService.getTaskProvider(
+					action.getResourceKey()).getResultResourceKeys()) {
 				events.add(eventService.getEventDefinition(resourceKey));
 			}
-			
+
 			return new ResourceList<EventDefinition>(events);
-			
+
 		} finally {
 			clearAuthenticatedContext();
 		}
 	}
 
-	
 	@AuthenticationRequired
 	@RequestMapping(value = "triggers/eventAttributes/{resourceKey}", method = RequestMethod.GET, produces = { "application/json" })
 	@ResponseBody
@@ -255,6 +259,76 @@ public class TriggerResourceController extends ResourceController {
 		try {
 
 			return new ResourceList<String>(taskService.getTriggerTasks());
+		} finally {
+			clearAuthenticatedContext();
+		}
+	}
+
+	@AuthenticationRequired
+	@RequestMapping(value = "triggers/actions", method = RequestMethod.POST, produces = { "application/json" })
+	@ResponseBody
+	@ResponseStatus(value = HttpStatus.OK)
+	public ResourceStatus<TriggerAction> updateAction(
+			HttpServletRequest request, HttpServletResponse response,
+			@RequestBody TriggerActionUpdate resource)
+			throws AccessDeniedException, UnauthorizedException,
+			SessionTimeoutException {
+		setupAuthenticatedContext(sessionUtils.getSession(request),
+				sessionUtils.getLocale(request));
+		try {
+			TriggerAction newResource = resourceService.getActionById(resource
+					.getId());
+			Realm realm = sessionUtils.getCurrentRealm(request);
+			newResource.setName(resource.getName());
+			newResource.setRealm(realm);
+			newResource.setResourceKey(resource.getResourceKey());
+			if (resource.getProperties() != null) {
+				Map<String, String> properties = new HashMap<String, String>();
+				for (PropertyItem prop : resource.getProperties()) {
+					properties.put(prop.getId(), prop.getValue());
+				}
+				newResource.setProperties(properties);
+			}
+
+			TriggerResource triggerResource = newResource.getTrigger();
+			for (TriggerAction action : triggerResource.getActions()) {
+				if (action.getId() == newResource.getId()) {
+					action = newResource;
+					break;
+				}
+			}
+
+			List<TriggerAction> actions = new ArrayList<TriggerAction>();
+			List<TriggerCondition> allConditions = new ArrayList<TriggerCondition>();
+			List<TriggerCondition> anyConditions = new ArrayList<TriggerCondition>();
+			Map<String, String> properties = new HashMap<String, String>();
+
+			for (TriggerCondition cond : triggerResource.getAllConditions()) {
+				allConditions.add(cond);
+			}
+			for (TriggerCondition cond : triggerResource.getAnyConditions()) {
+				anyConditions.add(cond);
+			}
+			for (TriggerAction action : triggerResource.getActions()) {
+				actions.add(action);
+			}
+
+			for (PropertyCategory i : resourceService.getResourceProperties(triggerResource)) {
+//				properties.put(i.getCategoryKey(), i.getBundle());
+			}
+			resourceService.updateResource(triggerResource, triggerResource.getName(),
+					triggerResource.getEvent(), triggerResource.getResult(),
+					properties, allConditions, anyConditions, actions,
+					triggerResource.getParentAction());
+			
+			return new ResourceStatus<TriggerAction>(newResource,
+					I18N.getResource(sessionUtils.getLocale(request),
+							TriggerResourceServiceImpl.RESOURCE_BUNDLE,
+							resource.getId() != null ? "resource.updated.info"
+									: "resource.created.info", resource
+									.getName()));
+		} catch (ResourceException e) {
+			return new ResourceStatus<TriggerAction>(false, e.getMessage());
 		} finally {
 			clearAuthenticatedContext();
 		}
@@ -291,8 +365,8 @@ public class TriggerResourceController extends ResourceController {
 		try {
 			TriggerAction action = resourceService.getActionById(id);
 			return new ResourceList<PropertyCategory>(taskService
-					.getTaskProvider(action.getResourceKey())
-					.getProperties(action));
+					.getTaskProvider(action.getResourceKey()).getProperties(
+							action));
 		} finally {
 			clearAuthenticatedContext();
 		}
@@ -358,8 +432,9 @@ public class TriggerResourceController extends ResourceController {
 			List<TriggerCondition> anyConditions = new ArrayList<TriggerCondition>();
 
 			TriggerAction parentAction = null;
-			if(resource.getParentId()!=null) {
-				parentAction = resourceService.getActionById(resource.getParentId());
+			if (resource.getParentId() != null) {
+				parentAction = resourceService.getActionById(resource
+						.getParentId());
 			}
 			for (TriggerActionUpdate a : resource.getActions()) {
 				TriggerAction action;
@@ -407,7 +482,7 @@ public class TriggerResourceController extends ResourceController {
 				cond.setConditionValue(c.getConditionValue());
 				anyConditions.add(cond);
 			}
-			
+
 			Map<String, String> properties = new HashMap<String, String>();
 			for (PropertyItem i : resource.getProperties()) {
 				properties.put(i.getId(), i.getValue());
@@ -418,13 +493,14 @@ public class TriggerResourceController extends ResourceController {
 						resourceService.getResourceById(resource.getId()),
 						resource.getName(), resource.getEvent(),
 						TriggerResultType.valueOf(resource.getResult()),
-						properties,
-						allConditions, anyConditions, actions, parentAction);
+						properties, allConditions, anyConditions, actions,
+						parentAction);
 			} else {
 				newResource = resourceService.createResource(
 						resource.getName(), resource.getEvent(),
-						TriggerResultType.valueOf(resource.getResult()), properties, realm,
-						allConditions, anyConditions, actions, parentAction);
+						TriggerResultType.valueOf(resource.getResult()),
+						properties, realm, allConditions, anyConditions,
+						actions, parentAction);
 			}
 			return new ResourceStatus<TriggerResource>(newResource,
 					I18N.getResource(sessionUtils.getLocale(request),
