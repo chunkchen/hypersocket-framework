@@ -7,7 +7,6 @@ import com.hypersocket.events.SystemEvent;
 import com.hypersocket.resource.AbstractResourceRepository;
 import com.hypersocket.tasks.TaskProvider;
 
-
 public interface TriggerResourceRepository extends
 		AbstractResourceRepository<TriggerResource> {
 
@@ -22,5 +21,7 @@ public interface TriggerResourceRepository extends
 	Collection<TriggerAction> getActionsByResourceKey(String resourceKey);
 
 	TriggerAction getActionByPostTriggerId(TriggerResource id);
+
+	void updateTriggerAction(TriggerAction resource);
 
 }

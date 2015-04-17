@@ -279,55 +279,24 @@ public class TriggerResourceController extends ResourceController {
 			TriggerAction newResource = resourceService.getActionById(resource
 					.getId());
 			Realm realm = sessionUtils.getCurrentRealm(request);
-			newResource.setName(resource.getName());
-			newResource.setRealm(realm);
-			newResource.setResourceKey(resource.getResourceKey());
+			Map<String, String> properties = new HashMap<String, String>();
 			if (resource.getProperties() != null) {
-				Map<String, String> properties = new HashMap<String, String>();
 				for (PropertyItem prop : resource.getProperties()) {
 					properties.put(prop.getId(), prop.getValue());
 				}
-				newResource.setProperties(properties);
 			}
 
-			TriggerResource triggerResource = newResource.getTrigger();
-			for (TriggerAction action : triggerResource.getActions()) {
-				if (action.getId() == newResource.getId()) {
-					action = newResource;
-					break;
-				}
-			}
+			newResource = resourceService.updateTriggerAction(newResource,
+					realm, resource.getName(), resource.getResourceKey(),
+					properties);
 
-			List<TriggerAction> actions = new ArrayList<TriggerAction>();
-			List<TriggerCondition> allConditions = new ArrayList<TriggerCondition>();
-			List<TriggerCondition> anyConditions = new ArrayList<TriggerCondition>();
-			Map<String, String> properties = new HashMap<String, String>();
-
-			for (TriggerCondition cond : triggerResource.getAllConditions()) {
-				allConditions.add(cond);
-			}
-			for (TriggerCondition cond : triggerResource.getAnyConditions()) {
-				anyConditions.add(cond);
-			}
-			for (TriggerAction action : triggerResource.getActions()) {
-				actions.add(action);
-			}
-
-			for (PropertyCategory i : resourceService.getResourceProperties(triggerResource)) {
-//				properties.put(i.getCategoryKey(), i.getBundle());
-			}
-			resourceService.updateResource(triggerResource, triggerResource.getName(),
-					triggerResource.getEvent(), triggerResource.getResult(),
-					properties, allConditions, anyConditions, actions,
-					triggerResource.getParentAction());
-			
 			return new ResourceStatus<TriggerAction>(newResource,
 					I18N.getResource(sessionUtils.getLocale(request),
 							TriggerResourceServiceImpl.RESOURCE_BUNDLE,
 							resource.getId() != null ? "resource.updated.info"
 									: "resource.created.info", resource
 									.getName()));
-		} catch (ResourceException e) {
+		} catch (Exception e) {
 			return new ResourceStatus<TriggerAction>(false, e.getMessage());
 		} finally {
 			clearAuthenticatedContext();

@@ -23,10 +23,10 @@ import com.hypersocket.tasks.TaskProviderService;
 public class TriggerResourceRepositoryImpl extends
 		AbstractResourceRepositoryImpl<TriggerResource> implements
 		TriggerResourceRepository {
-	
+
 	@Autowired
-	TaskProviderService taskService; 
-	
+	TaskProviderService taskService;
+
 	@Override
 	protected Class<TriggerResource> getResourceClass() {
 		return TriggerResource.class;
@@ -44,12 +44,11 @@ public class TriggerResourceRepositoryImpl extends
 	@Override
 	public List<TriggerResource> getTriggersForEvent(final SystemEvent event) {
 
-		return allEntities(TriggerResource.class,  
-				new CriteriaConfiguration() {
+		return allEntities(TriggerResource.class, new CriteriaConfiguration() {
 
 			@Override
 			public void configure(Criteria criteria) {
-				switch(event.getStatus()) {
+				switch (event.getStatus()) {
 				case FAILURE:
 					criteria.add(Restrictions.or(Restrictions.eq("result",
 							TriggerResultType.EVENT_FAILURE), Restrictions.eq(
@@ -86,9 +85,10 @@ public class TriggerResourceRepositoryImpl extends
 	}
 
 	@Override
-	public Collection<TriggerAction> getActionsByResourceKey(final String resourceKey) {
+	public Collection<TriggerAction> getActionsByResourceKey(
+			final String resourceKey) {
 		return list(TriggerAction.class, true, new CriteriaConfiguration() {
-			
+
 			@Override
 			public void configure(Criteria criteria) {
 				criteria.add(Restrictions.eq("resourceKey", resourceKey));
@@ -101,4 +101,8 @@ public class TriggerResourceRepositoryImpl extends
 		return get("postExecutionTrigger", id, TriggerAction.class);
 	}
 
+	@Override
+	public void updateTriggerAction(TriggerAction resource) {
+		save(resource);
+	}
 }

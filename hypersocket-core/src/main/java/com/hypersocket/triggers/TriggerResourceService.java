@@ -20,15 +20,15 @@ public interface TriggerResourceService extends
 			Map<String, String> properties,
 			List<TriggerCondition> allConditions,
 			List<TriggerCondition> anyConditions, List<TriggerAction> actions,
-			TriggerAction parentAction)
-			throws ResourceChangeException, AccessDeniedException;
+			TriggerAction parentAction) throws ResourceChangeException,
+			AccessDeniedException;
 
 	TriggerResource createResource(String name, String event,
 			TriggerResultType result, Map<String, String> properties,
 			Realm realm, List<TriggerCondition> allConditions,
 			List<TriggerCondition> anyConditions, List<TriggerAction> actions,
-			TriggerAction parentAction)
-			throws ResourceCreationException, AccessDeniedException;
+			TriggerAction parentAction) throws ResourceCreationException,
+			AccessDeniedException;
 
 	void registerConditionProvider(TriggerConditionProvider condition);
 
@@ -55,5 +55,9 @@ public interface TriggerResourceService extends
 	void start();
 
 	void stop();
+
+	TriggerAction updateTriggerAction(TriggerAction newResource, Realm realm,
+			String name, String resourceKey, Map<String, String> properties)
+			throws AccessDeniedException;
 
 }
